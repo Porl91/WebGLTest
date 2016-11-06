@@ -13,25 +13,10 @@ var Matrix4 = function(newValues) {
 
 	self.Scale = function(sx, sy, sz) {
 		return this.Multiply(new Matrix4([
-			sx, 
-			0, 
-			0, 
-			0, 
-
-			0, 
-			sy, 
-			0, 
-			0, 
-
-			0, 
-			0, 
-			sz, 
-			0, 
-
-			0, 
-			0, 
-			0, 
-			1
+			sx, 0, 0, 0, 
+			0, sy, 0, 0, 
+			0, 0, sz, 0, 
+			0, 0, 0, 1
 		]));
 	};
 

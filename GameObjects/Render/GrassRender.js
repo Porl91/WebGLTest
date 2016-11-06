@@ -34,11 +34,4 @@ var GrassRender = function() {
 	self.GetIndices = function() {
 		return indices;
 	};
-
-	self.Update = function() {
-	};
-
-	self.GetTransform = function() {
-		return Matrix4.Identity();
-	};
 };

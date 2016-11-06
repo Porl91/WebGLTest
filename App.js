@@ -5,14 +5,13 @@ var App = function() {
 	var textures = [];
 	var program;
 	var vertPosAttr, texCoordAttr;
-	var pMatrix, mvMatrix;
+	var pMatrix, vMatrix, mMatrix;
 	var previousTimestamp;
 
-	var uSampler, uPMatrix, uMVMatrix;
+	var uSampler, uPMatrix, uVMatrix, uMMatrix;
 	
-	var grass;
-	var cube;
-	var house;
+	var grass = [];
+	var houses = [];
 	var keyStates = [];
 	
 	var fov = 65;
@@ -43,6 +42,7 @@ var App = function() {
 		self.ExpandCanvas();
 
 		window.onresize = self.ExpandCanvas;
+		window.onblur = () => Object.keys(keyStates).forEach(x => keyStates[x] = false);
 
 		var textureFiles = ['test.png', 'grass.png', 'house.png'];
 		var texturesToLoad = textures.length;
@@ -52,18 +52,26 @@ var App = function() {
 
 			uSampler = gl.getUniformLocation(program, 'uSampler');
 			uPMatrix = gl.getUniformLocation(program, 'uPMatrix');
-			uMVMatrix = gl.getUniformLocation(program, 'uMVMatrix');
+			uVMatrix = gl.getUniformLocation(program, 'uVMatrix');
+			uMMatrix = gl.getUniformLocation(program, 'uMMatrix');
 
-			for (var i = 0; i < 100; i++) {
-				cube = new CubeRender();
-				cube.LoadBuffers(gl);
+			for (var z = -10; z < 10; z++) {
+				for (var x = -30; x < 30; x++) {
+					var newGrass = new GrassTile();
+					newGrass.Transform = newGrass.Transform.Translate(x, 0, z);
+					grass.push(newGrass);
+				}
 			}
 
-			grass = new GrassRender();
-			grass.LoadBuffers(gl);
+			for (var x = -3; x < 3; x++) {
+				var newHouse = new House();
+				newHouse.Transform = newHouse.Transform
+					.Scale(6, 4, 2)
+					.Translate(x * 6, 2, -10);
+				houses.push(newHouse);
+			}
 
-			house = new HouseRender();
-			house.LoadBuffers(gl);
+			mMatrix = Matrix4.Identity();
 
 			self.Load();
 
@@ -180,11 +188,9 @@ var App = function() {
 		gl.clearColor(0, 0, 0, 1);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-		mvMatrix = Matrix4.Identity()
+		vMatrix = Matrix4.Identity()
 			.Translate(xCam, -yCam - 2.0, zCam)
 			.Rotate(camYaw, 0, 1, 0);
-
-		//self.DrawCube(cube, textures[0]);
 		
 		self.DrawGround();
 		self.DrawHouses();
@@ -207,28 +213,29 @@ var App = function() {
 		var grassIndices = [];
 		var uniqueIndices = 0;
 		
-		for (var z = -10; z < 10; z++) {
-			for (var x = -30; x < 30; x++) {
-				var verts = grass.GetVertices();
-				var indices = grass.GetIndices();
-				var newVertices = [];
-				var newIndices = [];
-
-				for (var i = 0; i < verts.length; i += 3) {
-					newVertices[i + 0] = verts[i + 0] + x;
-					newVertices[i + 1] = verts[i + 1];
-					newVertices[i + 2] = verts[i + 2] + z;
-				}
-
-				for (var i = 0; i < indices.length; i++) {
-					newIndices[i] = indices[i] + uniqueIndices;
-				}
-				uniqueIndices += indices.length - 2;
-				
-				grassVerts = grassVerts.concat(newVertices);
-				grassTexCoords = grassTexCoords.concat(grass.GetTexCoords());
-				grassIndices = grassIndices.concat(newIndices);
+		for (var i = 0; i < grass.length; i++) {
+			var g = grass[i];
+			var verts = g.ModelData.GetVertices();
+			var indices = g.ModelData.GetIndices();
+			var newVertices = [];
+			var newIndices = [];
+			
+			var trans = g.Transform.GetValues();
+			for (var j = 0; j < verts.length; j += 3) {
+				newVertices[j + 0] = verts[j + 0] * trans[0] + trans[12];
+				newVertices[j + 1] = verts[j + 1] * trans[5] + trans[13];
+				newVertices[j + 2] = verts[j + 2] * trans[10] + trans[14];
 			}
+
+			for (var j = 0; j < indices.length; j++) {
+				newIndices[j] = indices[j] + uniqueIndices;
+			}
+
+			uniqueIndices += indices.length - 2;
+
+			grassVerts = grassVerts.concat(newVertices);
+			grassTexCoords = grassTexCoords.concat(g.ModelData.GetTexCoords());
+			grassIndices = grassIndices.concat(newIndices);
 		}
 
 		grassVertBuffer = gl.createBuffer();
@@ -261,9 +268,11 @@ var App = function() {
 
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, grassIndexBuffer);
 		gl.uniformMatrix4fv(uPMatrix, false, new Float32Array(pMatrix.GetValues()));
-		gl.uniformMatrix4fv(uMVMatrix, false, new Float32Array(mvMatrix.GetValues()));
+		gl.uniformMatrix4fv(uVMatrix, false, new Float32Array(vMatrix.GetValues()));
+		gl.uniformMatrix4fv(uMMatrix, false, new Float32Array(mMatrix.GetValues()));
 
 		gl.drawElements(gl.TRIANGLES, grassIndexCount, gl.UNSIGNED_SHORT, 0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
 	};
 
 	self.LoadHouses = function() {
@@ -272,25 +281,28 @@ var App = function() {
 		var houseIndices = [];
 		var uniqueIndices = 0;
 
-		for (var i = -3; i < 3; i++) {
-			var verts = house.GetVertices();
-			var indices = house.GetIndices();
+		for (var i = 0; i < houses.length; i++) {
+			var h = houses[i];
+			var verts = h.ModelData.GetVertices();
+			var indices = h.ModelData.GetIndices();
 			var newVertices = [];
 			var newIndices = [];
 
+			var trans = h.Transform.GetValues();
 			for (var j = 0; j < verts.length; j += 3) {
-				newVertices[j + 0] = verts[j + 0] + i;
-				newVertices[j + 1] = verts[j + 1];
-				newVertices[j + 2] = verts[j + 2];
+				newVertices[j + 0] = verts[j + 0] * trans[0] + trans[12];
+				newVertices[j + 1] = verts[j + 1] * trans[5] + trans[13];
+				newVertices[j + 2] = verts[j + 2] * trans[10] + trans[14];
 			}
 
 			for (var j = 0; j < indices.length; j++) {
 				newIndices[j] = indices[j] + uniqueIndices;
 			}
+
 			uniqueIndices += indices.length - 4;
-			
+
 			houseVerts = houseVerts.concat(newVertices);
-			houseTexCoords = houseTexCoords.concat(house.GetTexCoords());
+			houseTexCoords = houseTexCoords.concat(h.ModelData.GetTexCoords());
 			houseIndices = houseIndices.concat(newIndices);
 		}
 
@@ -324,34 +336,11 @@ var App = function() {
 
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, houseIndexBuffer);
 		gl.uniformMatrix4fv(uPMatrix, false, new Float32Array(pMatrix.GetValues()));
-		gl.uniformMatrix4fv(uMVMatrix, false, new Float32Array(Matrix4.Identity()
-			.Scale(6, 4.5, 1)
-			.Translate(0, 2.3, -8)
-			.Multiply(mvMatrix)
-			.GetValues()));
+		gl.uniformMatrix4fv(uVMatrix, false, new Float32Array(vMatrix.GetValues()));
+		gl.uniformMatrix4fv(uMMatrix, false, new Float32Array(mMatrix.GetValues()));
 
 		gl.drawElements(gl.TRIANGLES, houseIndexCount, gl.UNSIGNED_SHORT, 0);
-	};
-
-	self.DrawCube = function(obj, texture) {
-		gl.bindBuffer(gl.ARRAY_BUFFER, obj.GetVertexBuffer());
-		gl.vertexAttribPointer(vertPosAttr, 3, gl.FLOAT, false, 0, 0);
-
-		gl.bindBuffer(gl.ARRAY_BUFFER, obj.GetTextureBuffer());
-		gl.vertexAttribPointer(texCoordAttr, 2, gl.FLOAT, false, 0, 0);
-
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, texture);
-		gl.uniform1i(uSampler, 0);
-
-		var indices = obj.GetIndexBuffer();
-		var indexCount = obj.GetIndexCount();
-
-		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indices);
-		gl.uniformMatrix4fv(uPMatrix, false, new Float32Array(pMatrix.GetValues()));
-		gl.uniformMatrix4fv(uMVMatrix, false, new Float32Array(mvMatrix.GetValues()));
-
-		gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+		gl.bindTexture(gl.TEXTURE_2D, null);
 	};
 
 	self.ExpandCanvas = function() {
@@ -378,6 +367,8 @@ var App = function() {
 		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 		gl.generateMipmap(gl.TEXTURE_2D);
 		gl.bindTexture(gl.TEXTURE_2D, null);
 	};

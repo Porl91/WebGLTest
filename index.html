@@ -7,13 +7,14 @@
 			attribute vec3 aVertexPosition;
 			attribute vec2 aTextureCoord;
 			
-			uniform mat4 uMVMatrix;
+			uniform mat4 uMMatrix;
+			uniform mat4 uVMatrix;
 			uniform mat4 uPMatrix;
 			
 			varying highp vec2 vTextureCoord;
 			
 			void main(void) {
-				gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+				gl_Position = uPMatrix * uVMatrix * uMMatrix * vec4(aVertexPosition, 1.0);
 				vTextureCoord = aTextureCoord;
 			}
 		</script>
@@ -30,9 +31,10 @@
 		<link rel="stylesheet" type="text/css" href="Main.css"/>
 		<script type="text/javascript" src="Matrix4.js"></script>
 		<script type="text/javascript" src="CameraHelpers.js"></script>
-		<script type="text/javascript" src="GameObjects/CubeRender.js"></script>
-		<script type="text/javascript" src="GameObjects/GrassRender.js"></script>
-		<script type="text/javascript" src="GameObjects/HouseRender.js"></script>
+		<script type="text/javascript" src="GameObjects/Render/GrassRender.js"></script>
+		<script type="text/javascript" src="GameObjects/Render/HouseRender.js"></script>
+		<script type="text/javascript" src="GameObjects/GrassTile.js"></script>
+		<script type="text/javascript" src="GameObjects/House.js"></script>
 		<script type="text/javascript" src="App.js"></script>
 		<script>
 			new App().Start('main');

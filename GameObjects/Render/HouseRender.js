@@ -55,11 +55,4 @@ var HouseRender = function() {
 	self.GetIndexCount = function() {
 		return indices.length;
 	};
-
-	self.Update = function() {
-	};
-
-	self.GetTransform = function() {
-		return Matrix4.Identity();
-	};
 };
