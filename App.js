@@ -87,9 +87,18 @@ var App = function() {
 		}
 	};
 
-	self.Tick = function() {
+	var lastUpdate = 0;
+	var fps = 0;
+	self.Tick = function(timestamp) {
 		self.Update();
 		self.Render();
+
+		if (timestamp - lastUpdate > 1000) {
+			console.log(fps + " for the last second");
+			fps = 0;
+			lastUpdate = timestamp;
+		}
+		fps++;
 
 		window.requestAnimationFrame(self.Tick);
 	}
