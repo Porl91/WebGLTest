@@ -16,8 +16,8 @@ var App = function() {
 	
 	var fov = 65;
 
-	var moveSpeed = 0.06;
-	var turnSpeed = 0.8;
+	var moveSpeed = 0.18;
+	var turnSpeed = 1.2;
 	var camYaw = 0;
 	
 	var xCam = 0;
@@ -45,7 +45,7 @@ var App = function() {
 		window.onblur = () => Object.keys(keyStates).forEach(x => keyStates[x] = false);
 
 		var textureFiles = ['test.png', 'grass.png', 'house.png'];
-		var texturesToLoad = textures.length;
+		var texturesToLoad = textureFiles.length;
 		var onAllLoaded = function() {
 			self.RegisterKeyPresses();
 			self.LoadShaderProgram();
@@ -78,7 +78,7 @@ var App = function() {
 			window.requestAnimationFrame(self.Tick);
 		};
 		var onTextureLoaded = function() {
-			if (--texturesToLoad < 1) 
+			if (--texturesToLoad == 0) 
 				onAllLoaded();
 		};
 
@@ -117,7 +117,7 @@ var App = function() {
 		if (keyStates['d'])
 			camYaw = self.ClampRotationOverflow(camYaw + 2.0 * turnSpeed);
 		if (keyStates[' '] && !jumping) {
-			yAcc -= 0.01;
+			yAcc -= 0.009;
 			jumping = true;
 		}
 
