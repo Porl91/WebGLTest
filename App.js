@@ -55,7 +55,7 @@ var App = function() {
 			uVMatrix = gl.getUniformLocation(program, 'uVMatrix');
 			uMMatrix = gl.getUniformLocation(program, 'uMMatrix');
 
-			for (var z = -10; z < 10; z++) {
+			for (var z = -30; z < 10; z++) {
 				for (var x = -30; x < 30; x++) {
 					var newGrass = new GrassTile();
 					newGrass.Transform = newGrass.Transform.Translate(x, 0, z);
